@@ -259,7 +259,7 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-maracas_SOURCES = main.c
+maracas_SOURCES = main.c maracas.h
 maracas_CFLAGS = $(GTK_CFLAGS) $(PULSE_CFLAGS)
 maracas_LDADD = $(GTK_LIBS) $(PULSE_LIBS)
 all: all-am

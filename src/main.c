@@ -1,30 +1,109 @@
-// src/main.c
-#include <gtk/gtk.h>
-#include <pulse/pulseaudio.h>
-#include <errno.h>
-#include <glib/gi18n.h> // For g_slist
-
-typedef struct {
-    GtkWidget *window;
-    GtkWidget *source_combo; // New ComboBox widget
-    GtkWidget *record_button; // We'll add a record button later
-    GtkWidget *label; // Placeholder label
-    pa_mainloop *mainloop;
-    pa_mainloop_api *mainloop_api;
-    pa_context *context;
-    GSList *sources; // List to store audio source information
-} MaracasApp;
-
-typedef struct {
-    gchar *name;
-    gchar *description;
-} AudioSourceInfo;
+// Maracas - A simple audio recorder using GTK and PulseAudio
+#include "maracas.h"
 
 static void free_audio_source_info(gpointer data) {
     AudioSourceInfo *info = (AudioSourceInfo *)data;
     g_free(info->name);
     g_free(info->description);
     g_free(info);
+}
+
+static void record_state_callback(pa_stream *s, void *userdata) {
+    MaracasApp *app = (MaracasApp *)userdata;
+    switch (pa_stream_get_state(s)) {
+        case PA_STREAM_READY:
+            g_print("Audio recording stream is ready.\n");
+            // Uncork the stream to start recording
+            if (pa_stream_cork(app->record_stream, 0, NULL, NULL) < 0) {
+                g_printerr("pa_stream_cork() failed: %s\n", pa_strerror(pa_context_errno(app->context)));
+                pa_stream_unref(app->record_stream);
+                app->record_stream = NULL;
+                return;
+            }
+            break;
+        case PA_STREAM_FAILED:
+        case PA_STREAM_TERMINATED:
+            g_printerr("Audio recording stream failed: %s\n", pa_strerror(pa_context_errno(app->context)));
+            if (app->record_stream) {
+                pa_stream_unref(app->record_stream);
+                app->record_stream = NULL;
+            }
+            break;
+        case PA_STREAM_CREATING:
+            g_print("Connecting audio recording stream...\n");
+            break;
+        case PA_STREAM_UNCONNECTED:
+        default:
+            g_print("Audio recording stream state: %i\n", pa_stream_get_state(s));
+            break;
+    }
+}
+
+static void record_data_callback(pa_stream *s, size_t length, void *userdata) {
+    const void *data; // Pointer to the audio data
+    size_t bytes_read;
+
+    // Read the data from the stream
+    if (pa_stream_peek(s, &data, &bytes_read) < 0) {
+        g_printerr("pa_stream_peek() failed: %s\n", pa_strerror(pa_context_errno(pa_stream_get_context(s))));
+        return;
+    }
+
+    if (data) {
+        // Process the audio data (for now, just print the size)
+        g_print("Received %zu bytes of audio data.\n", bytes_read);
+    }
+
+    // Drop the data after processing
+    pa_stream_drop(s);
+}
+
+static void start_recording(GtkWidget *widget, MaracasApp *app) {
+    gint active_index = gtk_combo_box_get_active(GTK_COMBO_BOX(app->source_combo));
+    if (active_index >= 0 && app->sources) {
+        GSList *item = g_slist_nth(app->sources, active_index);
+        if (item) {
+            AudioSourceInfo *selected_source = (AudioSourceInfo *)item->data;
+            g_print("Recording requested from source: %s (%s)\n", selected_source->name, selected_source->description);
+
+            // Store the selected source name
+            g_free(app->selected_source_name);
+            app->selected_source_name = g_strdup(selected_source->name);
+
+            // Define the desired audio format
+            static const pa_sample_spec ss = {
+                .format = PA_SAMPLE_S16LE,
+                .rate = 44100,
+                .channels = 1 // Mono for simplicity
+            };
+
+            // Create the record stream
+            app->record_stream = pa_stream_new(app->context, "Maracas Record", &ss, NULL);
+            if (!app->record_stream) {
+                g_printerr("pa_stream_new() failed: %s\n", pa_strerror(pa_context_errno(app->context)));
+                return;
+            }
+
+            // Set stream state callback
+            pa_stream_set_state_callback(app->record_stream, record_state_callback, app);
+
+            // Set stream read callback
+            pa_stream_set_read_callback(app->record_stream, record_data_callback, app);
+
+            // Connect the stream to the source for recording
+            if (pa_stream_connect_record(app->record_stream, app->selected_source_name, NULL, PA_STREAM_START_CORKED) < 0) {
+                g_printerr("pa_stream_connect_record() failed: %s\n", pa_strerror(pa_context_errno(app->context)));
+                pa_stream_unref(app->record_stream);
+                app->record_stream = NULL;
+                return;
+            }
+
+        } else {
+            g_printerr("Error: Could not retrieve selected source information.\n");
+        }
+    } else {
+        g_print("Please select an audio source before recording.\n");
+    }
 }
 
 static void source_info_callback(pa_context *c, const pa_source_info *info, int eol, void *userdata) {
@@ -83,19 +162,25 @@ static void activate(GtkApplication *app, gpointer user_data) {
     gtk_window_set_title(GTK_WINDOW(maracas_app->window), "Maracas");
     gtk_window_set_default_size(GTK_WINDOW(maracas_app->window), 300, 150);
     g_signal_connect(maracas_app->window, "destroy", G_CALLBACK(gdk_window_destroy), maracas_app->window);
-    g_signal_connect(app, "shutdown", G_CALLBACK(g_slist_free_full), maracas_app->sources); // Free the source list on shutdown
+    g_signal_connect(app, "shutdown", G_CALLBACK(g_slist_free_full), maracas_app->sources);
 
     // Create a vertical box to hold widgets
     GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
     gtk_container_add(GTK_CONTAINER(maracas_app->window), vbox);
 
+    // Placeholder label (we might remove this later)
+    maracas_app->label = gtk_label_new("Select an audio source:");
+    gtk_box_pack_start(GTK_BOX(vbox), maracas_app->label, FALSE, FALSE, 0);
+
     // Create the source selection combo box
     maracas_app->source_combo = gtk_combo_box_text_new();
     gtk_box_pack_start(GTK_BOX(vbox), maracas_app->source_combo, FALSE, FALSE, 0);
 
-    // Placeholder label (we might remove this later)
-    maracas_app->label = gtk_label_new("Select an audio source:");
-    gtk_box_pack_start(GTK_BOX(vbox), maracas_app->label, FALSE, FALSE, 0);
+    // Create the record button
+    maracas_app->record_button = gtk_button_new_with_label("Record");
+    gtk_box_pack_start(GTK_BOX(vbox), maracas_app->record_button, FALSE, FALSE, 0);
+    g_signal_connect(maracas_app->record_button, "clicked", G_CALLBACK(start_recording), maracas_app); // Connect the button
+
 
     gtk_widget_show_all(maracas_app->window);
 
