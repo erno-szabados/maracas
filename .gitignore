@@ -1,0 +1,27 @@
+# Compilation output
+Makefile
+config.h
+*.o
+*.lo
+*.la
+*.so
+*.a
+*.dSYM
+*.pc
+
+# Autotools build directories
+autom4te.cache
+.deps
+_build
+
+# Executables
+src/maracas
+maracas # If you build directly in the root
+
+# Other common stuff
+*~
+\#*\#
+*.swp
+*.swo
+.DS_Store
+.vscode/
