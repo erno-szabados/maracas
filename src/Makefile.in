@@ -99,7 +99,7 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_maracas_OBJECTS = maracas-main.$(OBJEXT)
+am_maracas_OBJECTS = maracas-wavwrite.$(OBJEXT) maracas-main.$(OBJEXT)
 maracas_OBJECTS = $(am_maracas_OBJECTS)
 am__DEPENDENCIES_1 =
 maracas_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
@@ -120,7 +120,8 @@ am__v_at_1 =
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__maybe_remake_depfiles = depfiles
-am__depfiles_remade = ./$(DEPDIR)/maracas-main.Po
+am__depfiles_remade = ./$(DEPDIR)/maracas-main.Po \
+	./$(DEPDIR)/maracas-wavwrite.Po
 am__mv = mv -f
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -259,7 +260,7 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-maracas_SOURCES = main.c maracas.h
+maracas_SOURCES = wavwrite.c main.c maracas.h wavwrite.h
 maracas_CFLAGS = $(GTK_CFLAGS) $(PULSE_CFLAGS)
 maracas_LDADD = $(GTK_LIBS) $(PULSE_LIBS)
 all: all-am
@@ -349,6 +350,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/maracas-main.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/maracas-wavwrite.Po@am__quote@ # am--include-marker
 
 $(am__depfiles_remade):
 	@$(MKDIR_P) $(@D)
@@ -369,6 +371,20 @@ am--depfiles: $(am__depfiles_remade)
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(COMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
+
+maracas-wavwrite.o: wavwrite.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(maracas_CFLAGS) $(CFLAGS) -MT maracas-wavwrite.o -MD -MP -MF $(DEPDIR)/maracas-wavwrite.Tpo -c -o maracas-wavwrite.o `test -f 'wavwrite.c' || echo '$(srcdir)/'`wavwrite.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/maracas-wavwrite.Tpo $(DEPDIR)/maracas-wavwrite.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wavwrite.c' object='maracas-wavwrite.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(maracas_CFLAGS) $(CFLAGS) -c -o maracas-wavwrite.o `test -f 'wavwrite.c' || echo '$(srcdir)/'`wavwrite.c
+
+maracas-wavwrite.obj: wavwrite.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(maracas_CFLAGS) $(CFLAGS) -MT maracas-wavwrite.obj -MD -MP -MF $(DEPDIR)/maracas-wavwrite.Tpo -c -o maracas-wavwrite.obj `if test -f 'wavwrite.c'; then $(CYGPATH_W) 'wavwrite.c'; else $(CYGPATH_W) '$(srcdir)/wavwrite.c'; fi`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/maracas-wavwrite.Tpo $(DEPDIR)/maracas-wavwrite.Po
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='wavwrite.c' object='maracas-wavwrite.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(maracas_CFLAGS) $(CFLAGS) -c -o maracas-wavwrite.obj `if test -f 'wavwrite.c'; then $(CYGPATH_W) 'wavwrite.c'; else $(CYGPATH_W) '$(srcdir)/wavwrite.c'; fi`
 
 maracas-main.o: main.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(maracas_CFLAGS) $(CFLAGS) -MT maracas-main.o -MD -MP -MF $(DEPDIR)/maracas-main.Tpo -c -o maracas-main.o `test -f 'main.c' || echo '$(srcdir)/'`main.c
@@ -511,6 +527,7 @@ clean-am: clean-binPROGRAMS clean-generic mostlyclean-am
 
 distclean: distclean-am
 		-rm -f ./$(DEPDIR)/maracas-main.Po
+	-rm -f ./$(DEPDIR)/maracas-wavwrite.Po
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
@@ -557,6 +574,7 @@ installcheck-am:
 
 maintainer-clean: maintainer-clean-am
 		-rm -f ./$(DEPDIR)/maracas-main.Po
+	-rm -f ./$(DEPDIR)/maracas-wavwrite.Po
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
