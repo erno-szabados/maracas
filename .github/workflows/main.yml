@@ -29,7 +29,12 @@ jobs:
       - name: Build binary package
         run: dpkg-buildpackage -b -rfakeroot -uc -us
 
+      - name: Prepare artifacts
+        run: |
+          mkdir -p artifacts
+          mv ../*.{dsc,changes,tar.gz,debian.tar.xz,deb} artifacts/ || true
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          path: ../*.{dsc,changes,tar.gz,debian.tar.xz,deb}
+          path: artifacts/
