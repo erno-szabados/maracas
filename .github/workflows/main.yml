@@ -1,0 +1,6 @@
+- name: Build Debian Packages
+        run: |
+          sudo apt update
+          sudo apt install -y --no-install-recommends debhelper devscripts build-essential autoconf automake libtool libgtk-3-dev libpulse-dev # Install build dependencies
+          dpkg-buildpackage -rfakeroot -uc -us -S -sa # Build source package
+          dpkg-buildpackage -rfakeroot -uc -us -b # Build binary package
