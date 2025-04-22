@@ -1,5 +1,8 @@
 name: Build & Release Debian Package
 
+env:
+  GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+
 on:
   push:
     tags:
