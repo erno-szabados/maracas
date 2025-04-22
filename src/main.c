@@ -1,6 +1,13 @@
 // Maracas - A simple audio recorder using GTK and PulseAudio
 #include "maracas.h"
 #include "wavwrite.h"
+#include <time.h>     // For time(), localtime(), strftime()
+#include <unistd.h>   // For stat()
+#include <sys/stat.h> // For stat()
+#include <string.h>   // For snprintf(), strerror()
+#include <stdlib.h>   // For getenv()
+#include <errno.h>    // For errno
+#include <limits.h>   // For PATH_MAX
 
 static void free_audio_source_info(gpointer data)
 {
@@ -60,7 +67,7 @@ static void record_data_callback(pa_stream *s, size_t length, void *userdata)
     if (data && app->output_file)
     {
         fwrite(data, 1, bytes_read, app->output_file); // Write audio data to file
-        g_print("Saved %zu bytes of audio data.\n", bytes_read);
+        //g_print("Saved %zu bytes of audio data.\n", bytes_read);
     }
 
     pa_stream_drop(s);
@@ -123,15 +130,75 @@ static void start_recording(GtkWidget *widget, MaracasApp *app)
                 return;
             }
 
-            // Open the output file
-            app->output_file = fopen("output.wav", "wb");
+            // --- Generate unique filename on Desktop ---
+            char filename[PATH_MAX];
+            char timestamp[20];
+            time_t now = time(NULL);
+            struct tm *tm_info = localtime(&now);
+
+            // Format timestamp YYYYMMDD_HHMMSS
+            strftime(timestamp, sizeof(timestamp), "%Y%m%d_%H%M%S", tm_info);
+
+            // Get the localized Desktop directory
+            const char *desktop_dir = g_get_user_special_dir(G_USER_DIRECTORY_DESKTOP);
+            if (!desktop_dir)
+            {
+                g_printerr("Warning: Could not get Desktop directory. Saving to current directory.\n");
+                desktop_dir = g_strdup("."); // Fallback to current directory
+            }
+
+            char base_path[PATH_MAX];
+            snprintf(base_path, sizeof(base_path), "%s/%s", desktop_dir, timestamp); 
+            int counter = 1;
+            struct stat buffer;
+
+            // Loop to find a non-existent filename like YYYYMMDD_HHMMSS_N.wav
+            while (1)
+            {
+                snprintf(filename, sizeof(filename), "%s_%d.wav", base_path, counter);
+
+                // Check if file exists using stat()
+                if (stat(filename, &buffer) != 0)
+                {
+                    if (errno == ENOENT)
+                    {
+                        // File does not exist, use this filename
+                        break;
+                    }
+                    else
+                    {
+                        // Another error occurred (e.g., permission issue on path)
+                        g_printerr("Error checking file path %s: %s\n", filename, strerror(errno));
+                        pa_stream_disconnect(app->record_stream); // Clean up stream before returning
+                        pa_stream_unref(app->record_stream);
+                        app->record_stream = NULL;
+                        return; // Abort recording attempt
+                    }
+                }
+                // File exists, increment counter
+                counter++;
+                if (counter > 999)
+                { // Safety break
+                    g_printerr("Error: Could not find a unique filename after %d tries.\n", counter - 1);
+                    pa_stream_disconnect(app->record_stream);
+                    pa_stream_unref(app->record_stream);
+                    app->record_stream = NULL;
+                    return;
+                }
+            }
+            // --- End Generate filename ---
+
+            // Open the output file with the generated name
+            app->output_file = fopen(filename, "wb");
             if (!app->output_file)
             {
-                g_printerr("Failed to open output file for writing.\n");
+                g_printerr("Failed to open output file '%s' for writing: %s\n", filename, strerror(errno));
+                pa_stream_disconnect(app->record_stream); // Clean up stream before returning
                 pa_stream_unref(app->record_stream);
                 app->record_stream = NULL;
                 return;
             }
+            g_print("Saving recording to: %s\n", filename);
 
             // Write the WAV header
             write_wav_header(app->output_file, 44100, 1, 16); // 44.1kHz, mono, 16-bit
@@ -155,7 +222,7 @@ static void stop_recording(MaracasApp *app)
 {
     if (app->record_stream)
     {
-        pa_stream_cork(app->record_stream, 1, NULL, NULL); 
+        pa_stream_cork(app->record_stream, 1, NULL, NULL);
         pa_stream_disconnect(app->record_stream);
         pa_stream_unref(app->record_stream);
         app->record_stream = NULL;
@@ -173,7 +240,8 @@ static void stop_recording(MaracasApp *app)
 // Modify the signature to match the "destroy" signal if needed,
 // although Gtk sends the widget as the first arg, the user_data is what we need.
 // Keep the original signature if it works, but ensure all resources are freed.
-static void cleanup_maracas_app(GtkWidget *widget, gpointer user_data) { // Match typical GCallback signature for "destroy"
+static void cleanup_maracas_app(GtkWidget *widget, gpointer user_data)
+{                                              // Match typical GCallback signature for "destroy"
     MaracasApp *app = (MaracasApp *)user_data; // Cast user_data
     g_print("Cleaning up MaracasApp...\n");
 
@@ -181,18 +249,21 @@ static void cleanup_maracas_app(GtkWidget *widget, gpointer user_data) { // Matc
     stop_recording(app);
 
     // Disconnect and clean up PulseAudio context and mainloop
-    if (app->context) {
+    if (app->context)
+    {
         pa_context_disconnect(app->context);
         pa_context_unref(app->context);
         app->context = NULL;
     }
-    if (app->mainloop) {
+    if (app->mainloop)
+    {
         pa_mainloop_free(app->mainloop);
         app->mainloop = NULL;
     }
 
     // Free the sources list
-    if (app->sources) {
+    if (app->sources)
+    {
         g_slist_free_full(app->sources, free_audio_source_info);
         app->sources = NULL;
     }
@@ -271,7 +342,7 @@ static void activate(GtkApplication *app, gpointer user_data)
     gtk_window_set_title(GTK_WINDOW(maracas_app->window), "Maracas");
     gtk_window_set_default_size(GTK_WINDOW(maracas_app->window), 300, 150);
     g_signal_connect(maracas_app->window, "destroy", G_CALLBACK(cleanup_maracas_app), maracas_app);
-   
+
     // Create a vertical box to hold widgets
     GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
     gtk_container_add(GTK_CONTAINER(maracas_app->window), vbox);
@@ -314,7 +385,6 @@ static void activate(GtkApplication *app, gpointer user_data)
 
     // Integrate PulseAudio main loop with GTK main loop
     maracas_app->pulse_poll_id = g_idle_add(pulse_mainloop_poll, maracas_app); // Store the ID if needed for removal
-
 }
 
 int main(int argc, char *argv[])

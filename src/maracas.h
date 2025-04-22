@@ -4,6 +4,7 @@
 #include <pulse/pulseaudio.h>
 #include <errno.h>
 #include <glib/gi18n.h>
+#include <glib.h>
 
 #ifndef __MARACAS_H__
 #define __MARACAS_H__
