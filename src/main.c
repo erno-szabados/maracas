@@ -9,6 +9,22 @@
 #include <errno.h>    // For errno
 #include <limits.h>   // For PATH_MAX
 
+static gboolean update_timer_label(gpointer user_data)
+{
+    MaracasApp *app = (MaracasApp *)user_data;
+    time_t now = time(NULL);
+    time_t elapsed = now - app->start_time;
+    int hours = elapsed / 3600;
+    int minutes = (elapsed % 3600) / 60;
+    int seconds = elapsed % 60;
+
+    gchar *time_str = g_strdup_printf("%02d:%02d:%02d", hours, minutes, seconds);
+    gtk_label_set_text(GTK_LABEL(app->timer_label), time_str);
+    g_free(time_str);
+
+    return G_SOURCE_CONTINUE; // Keep the timer running
+}
+
 static void free_audio_source_info(gpointer data)
 {
     AudioSourceInfo *info = (AudioSourceInfo *)data;
@@ -67,7 +83,7 @@ static void record_data_callback(pa_stream *s, size_t length, void *userdata)
     if (data && app->output_file)
     {
         fwrite(data, 1, bytes_read, app->output_file); // Write audio data to file
-        //g_print("Saved %zu bytes of audio data.\n", bytes_read);
+        // g_print("Saved %zu bytes of audio data.\n", bytes_read);
     }
 
     pa_stream_drop(s);
@@ -148,7 +164,7 @@ static void start_recording(GtkWidget *widget, MaracasApp *app)
             }
 
             char base_path[PATH_MAX];
-            snprintf(base_path, sizeof(base_path), "%s/%s", desktop_dir, timestamp); 
+            snprintf(base_path, sizeof(base_path), "%s/%s", desktop_dir, timestamp);
             int counter = 1;
             struct stat buffer;
 
@@ -206,6 +222,10 @@ static void start_recording(GtkWidget *widget, MaracasApp *app)
             // Update button caption to "Stop"
             gtk_button_set_label(GTK_BUTTON(widget), "Stop");
             g_print("Recording started.\n");
+
+            // Start the timer
+            app->start_time = time(NULL);
+            app->timer_id = g_timeout_add_seconds(1, update_timer_label, app);
         }
         else
         {
@@ -235,6 +255,13 @@ static void stop_recording(MaracasApp *app)
         app->output_file = NULL;
         g_print("Recording stopped and file saved.\n");
     }
+
+     // Stop the timer
+     if (app->timer_id != 0)
+     {
+         g_source_remove(app->timer_id);
+         app->timer_id = 0;
+     }
 }
 
 // Modify the signature to match the "destroy" signal if needed,
@@ -341,13 +368,13 @@ static void activate(GtkApplication *app, gpointer user_data)
     maracas_app->window = gtk_application_window_new(app);
     gtk_window_set_title(GTK_WINDOW(maracas_app->window), "Maracas");
     gtk_window_set_default_size(GTK_WINDOW(maracas_app->window), 300, 150);
+    gtk_window_set_resizable(GTK_WINDOW(maracas_app->window), FALSE);
     g_signal_connect(maracas_app->window, "destroy", G_CALLBACK(cleanup_maracas_app), maracas_app);
 
     // Create a vertical box to hold widgets
     GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
     gtk_container_add(GTK_CONTAINER(maracas_app->window), vbox);
 
-    // Placeholder label (we might remove this later)
     maracas_app->label = gtk_label_new("Select an audio source:");
     gtk_box_pack_start(GTK_BOX(vbox), maracas_app->label, FALSE, FALSE, 0);
 
@@ -359,6 +386,9 @@ static void activate(GtkApplication *app, gpointer user_data)
     maracas_app->record_button = gtk_button_new_with_label("Record");
     gtk_box_pack_start(GTK_BOX(vbox), maracas_app->record_button, FALSE, FALSE, 0);
     g_signal_connect(maracas_app->record_button, "clicked", G_CALLBACK(start_recording), maracas_app); // Connect the button
+
+    maracas_app->timer_label = gtk_label_new("00:00:00"); // Initial time
+    gtk_box_pack_start(GTK_BOX(vbox), maracas_app->timer_label, FALSE, FALSE, 0);
 
     gtk_widget_show_all(maracas_app->window);
 

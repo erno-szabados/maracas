@@ -15,6 +15,7 @@ typedef struct {
     GtkWidget *source_combo;
     GtkWidget *record_button;
     GtkWidget *label;
+    GtkWidget *timer_label;
     pa_mainloop *mainloop;
     pa_mainloop_api *mainloop_api;
     pa_context *context;
@@ -23,6 +24,8 @@ typedef struct {
     pa_stream *record_stream; // PulseAudio stream for recording
     gchar *selected_source_name; // Name of the selected source
     FILE *output_file; 
+    time_t start_time; 
+    guint timer_id;    
 } MaracasApp;
 /// @brief Audio source information structure
 typedef struct {
@@ -30,7 +33,7 @@ typedef struct {
     gchar *description;
 } AudioSourceInfo;
 
-static void write_wav_header(FILE *file, uint32_t sample_rate, uint16_t channels, uint16_t bits_per_sample);
+static gboolean update_timer_label(gpointer user_data);
 
 /// @brief  Free the audio source information
 /// @param data Pointer to the audio source information
