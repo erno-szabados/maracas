@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Maracas
+Comment=Maracas Application
+Exec=maracas
+Icon=maracas
+Terminal=false
+Categories=Utility;Application;
+Keywords=maracas;

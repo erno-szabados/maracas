@@ -1,0 +1,5 @@
+src/maracas  usr/bin
+COPYING usr/share/doc/maracas
+README.md usr/share/doc/maracas
+maracas.desktop usr/share/applications
+icons/maracas.png usr/share/icons/hicolor/48x48/apps

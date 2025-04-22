@@ -1,0 +1,20 @@
+Source: maracas
+Section: sound
+Priority: optional
+Maintainer: Erno Szabados <erno.szabados@windowslive.com>
+Homepage: https://github.com/erno-szabados/maracas
+Standards-Version: 4.5.0
+Build-Depends: debhelper-compat (= 13),
+               libgtk-3-dev,
+               libpulse-dev,
+               autoconf,
+               automake,
+               libtool
+
+Package: maracas
+Architecture: amd64
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: A simple audio recorder application
+ Maracas is a simple audio recorder that uses GTK+ for its user
+ interface and PulseAudio for audio capture. It allows the user to
+ select an audio source and record audio to a WAV file.
