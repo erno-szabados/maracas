@@ -6,7 +6,7 @@ A simple audio recorder application built with GTK and PulseAudio.
 
 ## Description
 
-Maracas allows users to select an audio input source and record audio, saving it as a WAV file.
+Maracas allows users to select an audio input source and record audio, saving it as a WAV file to the desktop. It shows the time elapsed since beginning of the recording.
 
 ## Dependencies
 
@@ -33,5 +33,4 @@ After building, run the application from the src directory:
 
 - allow user to select output file
 - allow wav settings (sample rate, etc.)
-- show time elapsed since beginning of recording
-- Debian package (or fedora, etc.)
+- RPM package
