@@ -1,8 +1,12 @@
 # Maracas
 
-Version 0.1
+Version 0.1.0
 
-A simple audio recorder application built with GTK and PulseAudio. 
+- A simple audio recorder application built with GTK and PulseAudio.
+- Debian Bookworm package available (see releases).
+- Shows elapsed time
+- Saves timestamped wav (Mono 16 bits 44.1kHz) to desktop
+- Allows input source selection
 
 ## Description
 
