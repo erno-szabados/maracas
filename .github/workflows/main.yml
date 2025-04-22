@@ -1,15 +1,16 @@
-name: Build Debian Packages (Dockerized Bookworm)
+name: Build & Release Debian Package
 
 on:
   push:
-  pull_request:
-  release:
+    tags:
+      - "v*.*.*"  # Trigger on semantic version tags, e.g., v1.0.0
 
 jobs:
   build:
-    runs-on: ubuntu-latest # We use an Ubuntu runner to execute Docker
+    runs-on: ubuntu-latest
     container:
-      image: debian:bookworm-slim # Or a more specific Bookworm image
+      image: debian:bookworm-slim
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -17,11 +18,12 @@ jobs:
       - name: Install build dependencies
         run: |
           apt-get update
-          apt-get install -y --no-install-recommends debhelper devscripts build-essential autoconf automake libtool libgtk-3-dev libpulse-dev
+          apt-get install -y --no-install-recommends \
+            debhelper devscripts build-essential autoconf automake \
+            libtool libgtk-3-dev libpulse-dev
 
       - name: Generate Autotools files (if needed)
-        run: |
-          autoreconf -i
+        run: autoreconf -i
 
       - name: Build source package
         run: dpkg-buildpackage -S -uc -us -sa
@@ -29,15 +31,18 @@ jobs:
       - name: Build binary package
         run: dpkg-buildpackage -b -uc -us
 
-      - name: Debug artifact location
-        run: ls -R .. # List all files in the parent directory recursively
-
-      - name: Prepare artifacts
+      - name: Prepare artifact dynamically
+        id: prep
         run: |
           mkdir -p artifacts
-          mv ../maracas_0.1.0-1* artifacts/ || true
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+          FILE=$(ls ../*_amd64.deb | grep -v "dbgsym" | head -n 1)
+          cp "$FILE" artifacts/
+          echo "ARTIFACT_NAME=$(basename "$FILE")" >> "$GITHUB_OUTPUT"
+      
+      - name: Create and Upload GitHub Release Asset
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
         with:
-          path: artifacts/
+          files: artifacts/${{ steps.prep.outputs.ARTIFACT_NAME }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
