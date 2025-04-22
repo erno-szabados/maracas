@@ -39,7 +39,7 @@ static void record_state_callback(pa_stream *s, void *userdata)
     switch (pa_stream_get_state(s))
     {
     case PA_STREAM_READY:
-        g_print("Audio recording stream is ready.\n");
+        //g_print("Audio recording stream is ready.\n");
         // Uncork the stream to start recording
         if (pa_stream_cork(app->record_stream, 0, NULL, NULL) < 0)
         {
@@ -51,7 +51,7 @@ static void record_state_callback(pa_stream *s, void *userdata)
         break;
     case PA_STREAM_FAILED:
     case PA_STREAM_TERMINATED:
-        g_printerr("Audio recording stream failed: %s\n", pa_strerror(pa_context_errno(app->context)));
+        //g_printerr("Audio recording stream terminated: %s\n", pa_strerror(pa_context_errno(app->context)));
         if (app->record_stream)
         {
             pa_stream_unref(app->record_stream);
@@ -59,7 +59,7 @@ static void record_state_callback(pa_stream *s, void *userdata)
         }
         break;
     case PA_STREAM_CREATING:
-        g_print("Connecting audio recording stream...\n");
+        //g_print("Connecting audio recording stream...\n");
         break;
     case PA_STREAM_UNCONNECTED:
     default:
@@ -99,7 +99,7 @@ static void start_recording(GtkWidget *widget, MaracasApp *app)
 
         // Update button caption to "Record"
         gtk_button_set_label(GTK_BUTTON(widget), "Record");
-        g_print("Recording stopped.\n");
+        //g_print("Recording stopped.\n");
         return;
     }
 
@@ -253,7 +253,7 @@ static void stop_recording(MaracasApp *app)
         finalize_wav_file(app->output_file);
         fclose(app->output_file);
         app->output_file = NULL;
-        g_print("Recording stopped and file saved.\n");
+        //g_print("Recording stopped and file saved.\n");
     }
 
      // Stop the timer
@@ -270,7 +270,7 @@ static void stop_recording(MaracasApp *app)
 static void cleanup_maracas_app(GtkWidget *widget, gpointer user_data)
 {                                              // Match typical GCallback signature for "destroy"
     MaracasApp *app = (MaracasApp *)user_data; // Cast user_data
-    g_print("Cleaning up MaracasApp...\n");
+    //g_print("Cleaning up MaracasApp...\n");
 
     // Stop recording if active (handles stream and file)
     stop_recording(app);
@@ -301,7 +301,7 @@ static void cleanup_maracas_app(GtkWidget *widget, gpointer user_data)
 
     // Free the application structure itself
     g_free(app);
-    g_print("MaracasApp cleanup complete.\n");
+    //g_print("MaracasApp cleanup complete.\n");
 }
 
 static void source_info_callback(pa_context *c, const pa_source_info *info, int eol, void *userdata)
@@ -329,7 +329,7 @@ static void context_state_callback(pa_context *c, void *userdata)
     switch (pa_context_get_state(c))
     {
     case PA_CONTEXT_READY:
-        g_print("PulseAudio connection ready. Listing input sources...\n");
+        //g_print("PulseAudio connection ready. Listing input sources...\n");
         app->sources = NULL;                                                  // Initialize the list
         gtk_combo_box_text_remove_all(GTK_COMBO_BOX_TEXT(app->source_combo)); // Clear previous entries
         pa_operation *o;
@@ -342,14 +342,14 @@ static void context_state_callback(pa_context *c, void *userdata)
         break;
     case PA_CONTEXT_FAILED:
     case PA_CONTEXT_TERMINATED:
-        g_printerr("PulseAudio connection failed: %s\n", pa_strerror(pa_context_errno(c)));
+        //g_printerr("PulseAudio connection terminated: %s\n", pa_strerror(pa_context_errno(c)));
         g_application_quit(G_APPLICATION(gtk_window_get_application(GTK_WINDOW(app->window))));
         break;
     case PA_CONTEXT_CONNECTING:
     case PA_CONTEXT_AUTHORIZING:
     case PA_CONTEXT_SETTING_NAME:
     default:
-        g_print("PulseAudio connection state: %i\n", pa_context_get_state(c));
+        //g_print("PulseAudio connection state: %i\n", pa_context_get_state(c));
         break;
     }
 }
