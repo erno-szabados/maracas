@@ -29,6 +29,9 @@ jobs:
       - name: Build binary package
         run: dpkg-buildpackage -b -uc -us
 
+      - name: Debug artifact location
+        run: ls -R .. # List all files in the parent directory recursively
+
       - name: Prepare artifacts
         run: |
           mkdir -p artifacts
