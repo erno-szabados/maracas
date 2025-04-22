@@ -24,10 +24,10 @@ jobs:
           autoreconf -i
 
       - name: Build source package
-        run: dpkg-buildpackage -S -rfakeroot -uc -us -sa
+        run: dpkg-buildpackage -S -uc -us -sa
 
       - name: Build binary package
-        run: dpkg-buildpackage -b -rfakeroot -uc -us
+        run: dpkg-buildpackage -b -uc -us
 
       - name: Prepare artifacts
         run: |
